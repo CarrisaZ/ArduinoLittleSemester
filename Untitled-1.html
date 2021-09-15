@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="x-UA_Compatible" content="ie=edge">
+        <title>Document</title>   
+    </head>
+    <body>
+        <center>
+        <div id="app">
+            <h2>智能家居应用界面</h2>
+            <p><input type="button" value="温湿度" v-on:click="doIt">tem:{{tem}}℃  hum:{{hum}}%</p>
+            <p><input type="button" value="是否有人" v-on:click="ren">current:{{rencheck}} {{rencheckShow}} </p>
+            <p><input type="button" value="门窗关闭情况" v-on:click="men">1:{{mencheck1}} {{mencheckShow1}} 2:{{mencheck2}} {{mencheckShow2}} 3:{{mencheck3}} {{mencheckShow3}}</p>
+            <p><input type="button" value="车库情况" v-on:click="che"> current:{{checheck}} {{checheckShow}}</p>
+            <p> 
+                <form action="">
+                    光控(0-255)  <input type="text"  v-model="vdeng" v-on:keyup="changeMsg" data-displayPrevious=true data-fgColor="#00A8A9">
+                    <input type="submit" value="ok"> current:{{deng}}</p>
+                </form>
+            <p></p>
+            <p>模式 <input type="button" value="在家" v-on:click="zaijia"><input type="button" value="离家" v-on:click="lijia">
+            current:{{homemode}} {{homemodeShow}}</p>
+            <p>
+                <form action="">
+                    风扇 <input type="radio" name="feng" v-model="feng" v-on:click="kaifeng">开<input type="radio" name="feng" v-model="feng" v-on:click="guanfeng">关
+                current:{{fengmode}} {{fengmodeShow}}</p>
+                </form>
+            
+        </div>
+        <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+        <script>
+            var app = new Vue({
+                el:"#app",
+                data:{
+                    tem:"27",
+                    hum:"50",
+                    rencheck:0,rencheckShow:'无人',
+                    mencheck1:0,mencheckShow1:'close',mencheck2:0,mencheckShow2:'close',mencheck3:0,mencheckShow3:'close',
+                    checheck:0,checheckShow:'无车',
+                    deng:25,
+                    homemode:0,homemodeShow:'at home',
+                    fengmode:0,fengmodeShow:'关',
+                   
+                },
+                methods:{
+                    doIt:function(){
+                        alert("当前温度"+this.tem+"℃ 当前湿度"+this.hum+"%");
+                    },
+                    ren:function(){
+                        alert("当前"+this.rencheck+this.rencheckShow);
+                    },
+                    men:function(){
+                        if(this.mencheck1==this.mencheck2==this.mencheck3==0){alert("当前门窗已关闭");}
+                        else{alert("当前门窗未关闭");}
+                    },
+                    che:function(){
+                        if(this.checheck==0){alert("无车");}
+                        else{alert("车在车库");}
+                    },
+                    changeMsg:function(){
+                        if(this.vdeng<=255&&this.vdeng>=0){this.deng=this.vdeng;}
+                        else this.deng=' ---invalid---';
+                        
+                    },
+                    zaijia:function(){
+                        this.homemode=0;
+                        this.homemodeShow='at home';
+                        alert("change to=> "+this.homemode+this.homemodeShow);
+                    },
+                    lijia:function(){
+                        this.homemode=1;
+                        this.homemodeShow='out home';
+                        alert("change to=> "+this.homemode+this.homemodeShow);
+                    },
+                    kaifeng:function(){
+                        this.fengmode=1;this.fengmodeShow='开';
+                        alert("change to=>"+this.fengmode+this.fengmodeShow);
+                    },
+                    guanfeng:function(){
+                        this.fengmode=0;this.fengmodeShow='关';
+                        alert("change tp=>"+this.fengmode+this.fengmodeShow);
+                    }
+                },
+            })
+        </script>
+    </center>
+    </body>
+</html>
