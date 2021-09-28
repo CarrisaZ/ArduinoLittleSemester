@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+    <script src="https://cdn.bootcss.com/paho-mqtt/1.0.2/mqttws31.min.js"></script>
+    <script>
+        client = new Paho.MQTT.Client("broker.mqtt-dashboard.com", Number(8000), "1883");//建立客户端实例
+        client.connect({onSuccess:onConnect});//连接服务器并注册连接成功处理事件
+            function onConnect() {
+                console.log("onConnected");
+
+                topic = 'Test-Carrisa-Wenshi'; //订阅的主题
+
+                client.subscribe(topic);//订阅主题
+                console.log("subscribed");
+                //发送消息
+            }
+            client.onConnectionLost = onConnectionLost;//注册连接断开处理事件
+            client.onMessageArrived = onMessageArrived;//注册消息接收处理事件
+            function onConnectionLost(responseObject) {
+                if (responseObject.errorCode !== 0) {
+                    // console.log("onConnectionLost:"+responseObject.errorMessage);
+                    console.log("连接已断开");
+                 }
+            }
+            function onMessageArrived(message) {
+
+                console.log("收到消息:"+message.payloadString);
+                console.log("主题："+message.destinationName);
+
+            }
+    </script>
+</body>
+</html>
