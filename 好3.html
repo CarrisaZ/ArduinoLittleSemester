@@ -1,0 +1,200 @@
+
+   
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+        <div id="app">
+            <h2>智能家居应用界面</h2>
+            <p><input type="button" value="温湿度" v-on:click="doIt">
+                <textarea id="btn_Wenshi" rows="1" cols="1" class="WenshiNotSure" value="temp=-- hum=--"style="width: 100%;height: 15px; min-height: 15px;"></textarea>
+            </p>
+            <p><input type="button" value="是否有人" v-on:click="ren">
+                <textarea id="btn_People" rows="1" cols="1" class="PeopleNotSure" value="--"style="width: 100%;height: 15px; min-height: 15px;"></textarea>
+            </p>
+            <p><input type="button" value="门窗关闭情况" v-on:click="men">
+                <textarea id="btn_Door1" rows="1" cols="1" class="DoorNotSure" value="--"style="width: 10%;height: 15px; min-height: 15px;"></textarea>
+                <textarea id="btn_Door2" rows="1" cols="1" class="DoorNotSure" value="--"style="width: 10%;height: 15px; min-height: 15px;"></textarea>
+            </p>
+            <p><input type="button" value="车库情况" v-on:click="che">
+                <textarea id="btn_Car" rows="1" cols="1" class="CarNotSure" value="--"style="width: 10%;height: 15px; min-height: 15px;"></textarea>
+            </p>
+            <p> 
+                <form action="">
+                    光控(0-255)  <input type="text"  v-model="vdeng" v-on:keyup="changeMsg" data-displayPrevious=true data-fgColor="#00A8A9">
+                    <input type="submit" value="ok"> current:{{deng}}</p>
+                </form>
+            <p></p>
+            <p>模式 <input type="button" value="在家" v-on:click="zaijia"><input type="button" value="离家" v-on:click="lijia">
+            current:{{homemode}} {{homemodeShow}}</p>
+            <p>
+                <form action=""></form>
+                    风扇 <input type="radio" name="feng" v-model="feng" v-on:click="kaifeng">开<input type="radio" name="feng" v-model="feng" v-on:click="guanfeng">关
+                current:{{fengmode}} {{fengmodeShow}}</p>
+                </form>
+            
+        </div>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://cdn.bootcss.com/paho-mqtt/1.0.2/mqttws31.min.js"></script>
+    <script>
+        client = new Paho.MQTT.Client("broker.mqtt-dashboard.com", Number(8000), "1883");//建立客户端实例
+        client.connect({onSuccess:onConnect});//连接服务器并注册连接成功处理事件
+        client.onConnectionLost = onConnectionLost;//注册连接断开处理事件
+        client.onMessageArrived = onMessageArrived;//注册消息接收处理事件
+        var tem='27.5';var hum='50';
+        var rencheck=0; var rencheckShow='无人';
+        var mencheck1=0;var mencheckShow1='close';var mencheck2=0;var mencheckShow2='close';
+        var checheck=0;var checheckShow='无车';
+                   
+        var app = new Vue({
+                el:"#app",
+                data:{
+                    // tem:"27",
+                    // hum:"50",
+                    //rencheck:0,rencheckShow:'无人',
+                    //mencheck1:0,mencheckShow1:'close',mencheck2:0,mencheckShow2:'close',mencheck3:0,mencheckShow3:'close',
+                    //checheck:0,checheckShow:'无车',
+                    deng:0,
+                    homemode:0,homemodeShow:'at home',
+                    fengmode:0,fengmodeShow:'关',
+                   
+                    vdeng:'0',feng:'0',
+                },
+                 
+                methods:{
+                    
+                    doIt:function(){
+                        alert("当前温度"+this.tem+"℃ 当前湿度"+this.hum+"%"+"\n点这个没用的但也懒得删");
+                                                
+                    },
+                    ren:function(){
+                        alert("当前"+this.rencheck+this.rencheckShow+"\n点这个没用的但也懒得删");
+                    },
+                    men:function(){
+                        if(this.mencheck1==this.mencheck2==0){alert("当前门窗已关闭"+"\n点这个没用的但也懒得删");}
+                        else{alert("当前门窗未关闭");}
+                    },
+                    che:function(){
+                        if(this.checheck==0){alert("无车"+"\n点这个没用的但也懒得删");}
+                        else{alert("车在车库"+"\n点这个没用的但也懒得删");}
+                    },
+                    changeMsg:function(){
+                        if(this.vdeng<=255&&this.vdeng>=0){
+                            this.deng=this.vdeng;
+                           
+			                    //client.publish('Carrisa-Test-Light', this.deng);
+                            message = new Paho.MQTT.Message(this.deng); //发送内容 请求连接设备
+			                 message.destinationName = 'Carrisa-Test-Light';//发送消息主题
+			                 client.send(message);
+		                    	console.log('发布成功->' + Topic + '->' + Msg);
+                        }else this.deng=' ---invalid---';      
+                    },
+                    zaijia:function(){
+                        this.homemode=0;
+                        this.homemodeShow='at home';
+                        //client.publish('Carrisa-Test-Mode', this.homemode);
+                        message = new Paho.MQTT.Message("0"); //发送内容 请求连接设备
+			            message.destinationName = 'Carrisa-Test-Mode';//发送消息主题
+			            client.send(message);
+                        alert("change to=> "+this.homemode+this.homemodeShow);
+                    },
+                    lijia:function(){
+                        this.homemode=1;
+                        this.homemodeShow='out home';
+                       // client.publish('Carrisa-Test-Mode', this.homemode);
+                       message = new Paho.MQTT.Message("1"); //发送内容 请求连接设备
+			            message.destinationName = 'Carrisa-Test-Mode';//发送消息主题
+			            client.send(message);
+                        alert("change to=> "+this.homemode+this.homemodeShow);
+                    },
+                    kaifeng:function(){
+                        this.fengmode=1;this.fengmodeShow='开';
+                        //client.publish('Carrisa-Test-Fan', this.fengmode);
+                        message = new Paho.MQTT.Message("1"); //发送内容 请求连接设备
+			            message.destinationName = 'Carrisa-Test-Fan';//发送消息主题
+			            client.send(message);
+                        alert("change to=>"+this.fengmode+this.fengmodeShow);
+                    },
+                    guanfeng:function(){
+                        this.fengmode=0;this.fengmodeShow='关';
+                        //client.publish('Carrisa-Test-Fan', this.fengmode);
+                        message = new Paho.MQTT.Message("0"); //发送内容 请求连接设备
+			            message.destinationName = 'Carrisa-Test-Fan';//发送消息主题
+			            client.send(message);
+                        alert("change tp=>"+this.fengmode+this.fengmodeShow);
+                    }
+                },
+            })
+            function onConnect() {
+                console.log("onConnected");
+
+                topic1 = 'Test-Carrisa-Wenshi'; //订阅的主题
+                topic3 = 'Test-Carrisa-People';
+                topic2 = 'Test-Carrisa-Door1';topic4='Test-Carrisa-Door2';
+                topic5 = 'Test-Carrisa-Car';
+                client.subscribe(topic1);//订阅主题
+                client.subscribe(topic2); client.subscribe(topic3);client.subscribe(topic4);client.subscribe(topic5);
+                console.log("subscribed");
+                //发送消息
+            }
+            
+           
+            function onConnectionLost(responseObject) {
+                if (responseObject.errorCode !== 0) {
+                    // console.log("onConnectionLost:"+responseObject.errorMessage);
+                    console.log("连接已断开");
+                 }
+            }
+            function onMessageArrived(message) {
+                if(message.destinationName=='Test-Carrisa-People'){
+                     rencheck=message.payloadString.substring(0,1);console.log(rencheck);//{"temp":23.5,"hum":55}
+                     if(rencheck=='0'){document.getElementById('btn_People').value="无人";}
+                     else if(rencheck='1'){document.getElementById('btn_People').value="有人";}
+                    console.log("收到消息:"+message.payloadString);
+                     console.log("主题："+message.destinationName);
+                }
+                else if(message.destinationName=='Test-Carrisa-Wenshi'){
+                    tem=message.payloadString.substring(8,12);console.log(tem);//{"temp":23.5,"hum":55}
+                     hum=message.payloadString.substring(19,21);console.log(hum);
+                     document.getElementById('btn_Wenshi').value="temp="+tem+" "+"hum="+hum;
+                    console.log("收到消息:"+message.payloadString);
+                     console.log("主题："+message.destinationName);
+                }
+                 
+                else if(message.destinationName=='Test-Carrisa-Door1'){
+                     mencheck1=message.payloadString.substring(0,1);console.log(mencheck1);//{"temp":23.5,"hum":55}
+                     if(mencheck1=='0'){document.getElementById('btn_Door1').value="关";}
+                     else if(mencheck='1'){document.getElementById('btn_Door1').value="开";}
+                    console.log("收到消息:"+message.payloadString);
+                     console.log("主题："+message.destinationName);
+                }
+                else if(message.destinationName=='Test-Carrisa-Door2'){
+                     mencheck2=message.payloadString.substring(0,1);console.log(mencheck2);//{"temp":23.5,"hum":55}
+                     if(mencheck2=='0'){document.getElementById('btn_Door2').value="关";}
+                     else if(mencheck2='1'){document.getElementById('btn_Door2').value="开";}
+                    console.log("收到消息:"+message.payloadString);
+                     console.log("主题："+message.destinationName);
+                }
+                else if(message.destinationName=='Test-Carrisa-Car'){
+                     checheck=message.payloadString.substring(0,1);console.log(checheck);//{"temp":23.5,"hum":55}
+                     if(checheck=='0'){document.getElementById('btn_Car').value="无车";}
+                     else if(checheck='1'){document.getElementById('btn_Car').value="有车";}
+                    console.log("收到消息:"+message.payloadString);
+                     console.log("主题："+message.destinationName);
+                }
+
+                else{
+                console.log("收到消息没有命中任何topic:"+message.payloadString);
+                console.log("主题："+message.destinationName);}
+                
+            }
+            
+    </script>
+</body>
+</html>
+
