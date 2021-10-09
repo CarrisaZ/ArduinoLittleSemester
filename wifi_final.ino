@@ -24,7 +24,7 @@ int value = 0;///////////
 #define pinBuzzer 0//D8蜂鸣器
 #define Echo 15//D10 超声波echo
 #define Trig 2//D9 超声波trig
-#define fengshan D11//风扇
+#define fengshan 3//D0风扇
 
   double ddistance,ttime;//超声波的东西
   int csb=0;//在车库
@@ -45,7 +45,8 @@ DHT dht(DHTPIN, DHTTYPE);
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);     // 设置板上LED引脚为输出模式
   digitalWrite(LED_BUILTIN, HIGH);  // 启动后关闭板上LED
-  pinMode(Trig,OUTPUT);pinMode(Echo,INPUT);pinMode(fengshan,OUTPUT);
+  pinMode(Trig,OUTPUT);pinMode(Echo,INPUT);
+  pinMode(fengshan,OUTPUT);
   Serial.begin(9600);               // 启动串口通讯
   
   
@@ -62,7 +63,7 @@ void setup() {
 void loop() {
   if (mqttClient.connected()) { // 如果开发板成功连接服务器
     mqttClient.loop();          // 处理信息以及心跳
-    door();wenshi();csb();
+    door();door2();wenshi();csb1();
     
   } else {                      // 如果开发板未能成功连接服务器
     connectMQTTserver();        // 则尝试连接服务器
@@ -76,28 +77,33 @@ void loop() {
 ///////////////////////////////////////////////////////////////////////////
 
 
-void csb(){
+void csb1(){
   digitalWrite(Trig,LOW);
   delayMicroseconds(2);
   digitalWrite(Trig,HIGH);
   delayMicroseconds(10);
   digitalWrite(Trig,LOW);
-  ttime=pulseln(Echo,HIGH);
-  ddistance=ttime/58;
+  ttime=pulseIn(Echo,HIGH);
+  ddistance=ttime/58;//Serial.print("d is");Serial.print(ddistance);
   int csbNow;
-  if(ddistance>5){csbNow=1;}else{csbNow=0;}
+  if(ddistance>0.08){csbNow=1;}else{csbNow=0;}
   if(csbNow==0){//有车时
     if(csb!=0){
-      Serial.print("车入库了");csb=0;
+      Serial.print("车入库了");Serial.print(ddistance);
       DynamicJsonDocument data(256); 
-      data["cari"]=csb;char json_string[256];serializeJson(data, json_string); Serial.println(json_string); mqttClient.publish("Test-Carrisa-Door",json_string, false); 
-      }}//
+     // data["cari"]=csb;serializeJson(data, json_string);
+      char json_string[256]=""; json_string[0]='0';Serial.println(json_string); mqttClient.publish("Test-Carrisa-Csb",json_string, false); 
+     
+      } csb=0;
+      }//
    if(csbNow==1){//无车时
     if(csb==0){
-      Serial.print("车开走了");csb=0;
+      Serial.print("车开走了");Serial.print(ddistance);
       DynamicJsonDocument data(256); 
-      data["caro"]=csb;char json_string[256];serializeJson(data, json_string); Serial.println(json_string); mqttClient.publish("Test-Carrisa-Door",json_string, false); 
-      }}//
+      //data["caro"]=csb;
+      char json_string[256]="";json_string[0]='1'; Serial.println(json_string); mqttClient.publish("Test-Carrisa-Csb",json_string, false); 
+      }csb=1;
+      }//
 }
   
   
@@ -110,9 +116,11 @@ void door(){
     if(zhuangtai!=0){
       Serial.print("门关上了");zhuangtai=0;
       DynamicJsonDocument data(256); 
-      data["shut"]=zhuangtai;char json_string[256];  
-      serializeJson(data, json_string); Serial.println(json_string);
-      mqttClient.publish("Test-Carrisa-Door",json_string, false);
+      //data["shut"]=zhuangtai;
+      
+      char json_string[256]="";json_string[0]='0';  Serial.println(json_string);mqttClient.publish("Test-Carrisa-Door",json_string, false);
+     // serializeJson(data, json_string); 
+      
       }//当之前状态为开时才打印出”门关“
     
     }
@@ -120,12 +128,45 @@ void door(){
     if(zhuangtai==0){
       Serial.print("门打开了");zhuangtai=1;
       DynamicJsonDocument data(256); 
-      data["open"]=zhuangtai;char json_string[256]; serializeJson(data, json_string);  Serial.println(json_string);mqttClient.publish("Test-Carrisa-Door", json_string, false);//{"shut":0}
+      //data["open"]=zhuangtai;
+      // data=zhuangtai;
+      char json_string[256]="";json_string[0]='1';  Serial.println(json_string);mqttClient.publish("Test-Carrisa-Door", json_string, false);//{"shut":0}
+      //serializeJson(data, json_string); 
       if(homemode==0){digitalWrite(pinBuzzer,LOW);}else{digitalWrite(pinBuzzer,HIGH);}
       
       }//当之前状态为关时才打印出"门开"
     }
 }
+void door2(){
+  int zhuangtaiNow=digitalRead(pengzhuang);
+  if(zhuangtaiNow==LOW){//关时
+    if(zhuangtai!=0){
+      Serial.print("门2关上了");zhuangtai=0;
+      DynamicJsonDocument data(256); 
+      //data["shut"]=zhuangtai;
+      
+      char json_string[256]="";json_string[0]='0';  Serial.println(json_string);mqttClient.publish("Test-Carrisa-Door2",json_string, false);
+     // serializeJson(data, json_string); 
+      
+      }//当之前状态为开时才打印出”门关“
+    
+    }
+  else if(zhuangtaiNow==HIGH){
+    if(zhuangtai==0){
+      Serial.print("门2打开了");zhuangtai=1;
+      DynamicJsonDocument data(256); 
+      //data["open"]=zhuangtai;
+       //data=zhuangtai;
+      char json_string[256]="";json_string[0]='1';  Serial.println(json_string);mqttClient.publish("Test-Carrisa-Door2", json_string, false);//{"shut":0}
+      //serializeJson(data, json_string); 
+      if(homemode==0){digitalWrite(pinBuzzer,LOW);}else{digitalWrite(pinBuzzer,HIGH);}
+      
+      }//当之前状态为关时才打印出"门开"
+    }
+}
+
+
+
 void wenshi(){
     unsigned long currentMillis = millis(); // temperature and humidity data are publish every five second 
   if (currentMillis - previousMillis >= 10000) { 
@@ -203,12 +244,13 @@ void receiveCallback(char* topic, byte* payload, unsigned int length) {
           for (int i = 0; i < length; i++) {
               Serial.print((char)payload[i]);
             }Serial.print("");Serial.print("Message Length(Bytes) ");Serial.println(length);
-       int fanNow = byteArrayToInt(payload,length);
+       int fanNow = byteArrayToInt(payload,length);Serial.print(fanNow);
        if(fan!=fanNow){
         fan=fanNow;Serial.print(fan);
         if(fan==0){Serial.print("");Serial.print("风扇关");}else if(fan==1){Serial.print("");Serial.print("风扇开");}
         Serial.print("fan=>");Serial.println(fan);
         }
+        if(fan==0){digitalWrite(fengshan,LOW);}else{digitalWrite(fengshan,HIGH);}
       }
     
   }
