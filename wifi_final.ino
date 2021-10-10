@@ -1,5 +1,6 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
+#include<SoftwareSerial.h>
 #include <ArduinoJson.h> 
 #include "DHT.h"
 // 设置wifi接入信息(请根据您的WiFi信息进行修改)
@@ -12,7 +13,11 @@ long lastMsg = 0;////////////
 char msg[50];
 int value = 0;///////////
 
-
+SoftwareSerial softSerial1(3,1);//rx(D1 3) tx(d1 1)
+// 两个字符串分别用于存储A、B两端传来的数据:
+  String device_B_String="";
+  String device_A_String=""; //从uno端接收到的数据
+  const char* hotnow;
 ///引脚信息
 #define DHTPIN 14//D5温湿度
 #define DHTTYPE DHT11 // DHT 11 
@@ -24,11 +29,12 @@ int value = 0;///////////
 #define pinBuzzer 0//D8蜂鸣器
 #define Echo 15//D10 超声波echo
 #define Trig 2//D9 超声波trig
-#define fengshan 3//D0风扇
+#define fengshan A0//风扇
 
   double ddistance,ttime;//超声波的东西
   int csb=0;//在车库
-  int zhuangtai=0;//pengzhuang的关门
+  int hot=0;//无人
+  int zhuangtai=0;int zhuangtai2=0;//pengzhuang的关门
   int pwm=0;//led关灯
   int homemode=0;//在家 
   int fan=0;//风扇关
@@ -48,6 +54,8 @@ void setup() {
   pinMode(Trig,OUTPUT);pinMode(Echo,INPUT);
   pinMode(fengshan,OUTPUT);
   Serial.begin(9600);               // 启动串口通讯
+  softSerial1.begin(9600);//初始化serial1，该串口用于与设备B连接通信；
+  softSerial1.listen();
   
   
   WiFi.mode(WIFI_STA);//设置ESP8266工作模式为无线终端模式
@@ -63,8 +71,8 @@ void setup() {
 void loop() {
   if (mqttClient.connected()) { // 如果开发板成功连接服务器
     mqttClient.loop();          // 处理信息以及心跳
-    door();door2();wenshi();csb1();
-    
+    door();door2();wenshi();csb1(); people1(); 
+   
   } else {                      // 如果开发板未能成功连接服务器
     connectMQTTserver();        // 则尝试连接服务器
   }
@@ -76,7 +84,40 @@ void loop() {
 //////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////
 
+void people1(){//这个是先通过uno传过来
+  //int hot=0;//无人
+  int hotNow=0;//
+  if(softSerial1.available()>0)//读取从设备A（uno）传入的数据，并在串口监视器中显示
+  {
+    if(softSerial1.peek()!='\n'){
+      device_A_String+=(char)softSerial1.read();      
+    }
+    else{
+      softSerial1.read();
+      hotnow = device_A_String.c_str();                //由于sscanf只能识别const char*类型字符串，将String类型字符串转成const char*类型
+      sscanf(hotnow,"%d",&hotNow);   //把传来的hotnow赋给hotNow.串口1接收字符串格式为150
+      Serial.print(hotNow);Serial.print(" ");Serial.print(hot);
+      device_A_String="";//DynamicJsonDocument data(256);  
 
+      if(hotNow==0){//关时
+        if(hot!=0){
+            Serial.print("无人了");hot=0;  //DynamicJsonDocument data(256); data["shut"]=zhuangtai;   
+            char json_string[256]="";json_string[0]='0';  Serial.println(json_string);mqttClient.publish("Test-Carrisa-People",json_string, false); 
+          }//当之前状态为有人时才打印出无人了“  
+       }
+      else if(hotNow==1){
+         if(hot==0){
+            Serial.print("来人了");hot=1;  //DynamicJsonDocument data(256); data["shut"]=zhuangtai;   
+            char json_string[256]="";json_string[0]='1';  Serial.println(json_string);mqttClient.publish("Test-Carrisa-People",json_string, false); 
+            }         //当之前状态为wuren时才打印出"人来了"
+        }
+
+      
+     }  //else的
+    }//if的
+  
+  
+  }
 void csb1(){
   digitalWrite(Trig,LOW);
   delayMicroseconds(2);
@@ -138,12 +179,12 @@ void door(){
     }
 }
 void door2(){
-  int zhuangtaiNow=digitalRead(pengzhuang);
-  if(zhuangtaiNow==LOW){//关时
-    if(zhuangtai!=0){
-      Serial.print("门2关上了");zhuangtai=0;
+  int zhuangtai2Now=digitalRead(pengzhuang);
+  if(zhuangtai2Now==LOW){//关时
+    if(zhuangtai2!=0){
+      Serial.print("门2关上了");zhuangtai2=0;
       DynamicJsonDocument data(256); 
-      //data["shut"]=zhuangtai;
+      //data["shut"]=zhuangtai2;
       
       char json_string[256]="";json_string[0]='0';  Serial.println(json_string);mqttClient.publish("Test-Carrisa-Door2",json_string, false);
      // serializeJson(data, json_string); 
@@ -151,9 +192,9 @@ void door2(){
       }//当之前状态为开时才打印出”门关“
     
     }
-  else if(zhuangtaiNow==HIGH){
-    if(zhuangtai==0){
-      Serial.print("门2打开了");zhuangtai=1;
+  else if(zhuangtai2Now==HIGH){
+    if(zhuangtai2==0){
+      Serial.print("门2打开了");zhuangtai2=1;
       DynamicJsonDocument data(256); 
       //data["open"]=zhuangtai;
        //data=zhuangtai;
